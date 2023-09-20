@@ -1,0 +1,100 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavManager
+@implements IAsyncDisposable
+
+<div class="form-group">
+    <label>
+        User: <input @bind="userInput" />
+    </label>
+</div>
+<div class="form-group">
+    <label>
+        Message: <input @bind="messageInput" />
+    </label>
+</div>
+<button @onclick="Send" disabled="@(IsConnected == false)">Send</button>
+
+<hr />
+
+<ul>
+    @foreach (string message in messages)
+    {
+        <li>@message</li>
+    }
+</ul>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = new();
+    private string? userInput;
+    private string? messageInput;
+    private int idCount = 0; // Who cares about security am I right? {BUG}
+    private int[] playerIds = new int[50];
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+
+            var parsedMessage = message.Split('|');
+            if (parsedMessage.Length > 0)
+            {
+                switch (parsedMessage[0])
+                {
+                    case "Request":
+                        if (parsedMessage[1] == "CreateAvatar")
+                        {
+                            int gotId = int.Parse(user);
+                            playerIds[idCount] = gotId;
+                            hubConnection.SendAsync("SendMessage", "SERVER", gotId.ToString() + "|RequestAccepted");
+                            for (int i = 0; i < idCount; i++)
+                            {
+                                hubConnection.SendAsync("SendMessage", "SERVER", gotId.ToString() + "|EnemyCreated|" + playerIds[i].ToString());
+                            }
+                            hubConnection.SendAsync("SendMessage", "SERVER", "All|EnemyCreated|" + gotId.ToString());
+                            idCount++;
+                        }
+                        break;
+                    case "Coords": //write code to save, by replacing playerIds with Player class custom
+                        hubConnection.SendAsync("SendMessage", "SERVER", "All|Coords|" +user.ToString()+ "|" + parsedMessage[1].ToString() + "|"+parsedMessage[2].ToString());
+                        break;
+                }
+                if (parsedMessage[0] == "Request")
+                {
+                    
+                }
+            }
+            
+
+            var formattedMessage = $"{user}: {message}";
+            messages.Add(formattedMessage);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessage", userInput, messageInput);
+        }
+    }
+
+    public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
