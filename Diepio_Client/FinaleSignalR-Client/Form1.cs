@@ -106,6 +106,7 @@ namespace FinaleSignalR_Client
                                 case "RequestAccepted":
                                     createPlayer(id.ToString());
                                     playerBox = playerBoxes[0];
+                                    ServerTimer.Start();
                                     break;
                                 case "EnemyCreated":
                                     if (parsedMessage[2] != id.ToString())
@@ -129,7 +130,6 @@ namespace FinaleSignalR_Client
             {
                 await connection.StartAsync();
                 messages.Items.Add("Connection Started");
-                ServerTimer.Start();
                 Random rnd = new Random();
                 id = rnd.Next(100000);
                 canICreateAvatar(id);
@@ -145,7 +145,7 @@ namespace FinaleSignalR_Client
 
         private void moveEnemy(string id, int left, int top)
         {
-            for (int i = 0; i < playerBoxes.Length; i++)
+            for (int i = 0; i < playerCount; i++)
             {
                 if (playerBoxes[i].Name == id)
                 {
@@ -264,6 +264,7 @@ namespace FinaleSignalR_Client
         {
             try
             {
+                Console.WriteLine(playerBox.Left.ToString());
                 await connection.InvokeAsync("SendMessage", id.ToString(), $"Coords|{playerBox.Left}|{playerBox.Top}");
             }
             catch (Exception ex)
