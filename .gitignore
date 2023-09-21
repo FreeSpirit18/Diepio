@@ -1,0 +1,84 @@
+# Compiled Binaries
+[BD]ebug/
+[bd]ebug/
+[RO]elease/
+[ro]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# Uncomment if you have tasks that create the project's static files in wwwroot
+#wwwroot/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Tye
+.tye/
+
+# Rider
+.idea/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# VS Code
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# VS Code directories
+.vscode/
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# SignalR and other related stuff
+*SignalR*
+*.suo
+.vs/
+*.cache
+*.exe
+*.pdb
+*.resources
+
+# Other files and directories to ignore
+*.log
+
+
+Diepio_Client/.vs/FinaleSignalR-Client/v17/.suo
+Diepio_Client/FinaleSignalR-Client/obj/
