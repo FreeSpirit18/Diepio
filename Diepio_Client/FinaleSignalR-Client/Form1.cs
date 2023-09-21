@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading.Tasks;
@@ -12,6 +13,33 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace FinaleSignalR_Client
 {
+
+    public class Bullet
+    {
+        public PictureBox BulletPictureBox { get; set; }
+        public Vector2 Direction { get; set; }
+        public float Speed { get; set; } = 10;
+
+        public Bullet(Point startPosition, Vector2 direction)
+        {
+            BulletPictureBox = new PictureBox
+            {
+                Size = new Size(10, 10), // example size
+                BackColor = Color.Red,
+                Location = startPosition,
+            };
+            Direction = direction;
+        }
+
+        public void Move()
+        {
+            BulletPictureBox.Left += (int)(Direction.X * Speed);
+            BulletPictureBox.Top += (int)(Direction.Y * Speed);
+        }
+    }
+
+
+
     public partial class Form1 : Form
     {
         HubConnection connection;
@@ -19,6 +47,10 @@ namespace FinaleSignalR_Client
         int playerCount = 0;
         int id;
         PictureBox playerBox;
+        private bool isShooting = false;
+        private DateTime lastBulletFiredTime;
+        private TimeSpan bulletCooldown = TimeSpan.FromMilliseconds(150);
+
 
         public Form1()
         {
@@ -28,8 +60,8 @@ namespace FinaleSignalR_Client
             playerspeed = 5;
             this.KeyPreview = true;
 
-            
-            
+
+
             //((System.ComponentModel.ISupportInitialize)(Player)).EndInit();
 
             //Conects to a given url
@@ -74,6 +106,17 @@ namespace FinaleSignalR_Client
 
                 return Task.CompletedTask;
             };
+
+
+            this.MouseClick += Form1_MouseClick;
+            this.MouseDown += Form1_MouseDown;
+            this.MouseUp += Form1_MouseUp;
+
+
+            Timer bulletMovementTimer = new Timer();
+            bulletMovementTimer.Interval = 1;
+            bulletMovementTimer.Tick += BulletMovementTimer_Tick;
+            bulletMovementTimer.Start();
         }
 
         private void createPlayer(string id)
@@ -92,7 +135,7 @@ namespace FinaleSignalR_Client
 
         private async void button1_Click(object sender, EventArgs e)
         {
-            connection.On<string, string>("ReceiveMessage", (user, message) => 
+            connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
                 messages.Invoke((MethodInvoker)delegate
                 {
@@ -101,7 +144,7 @@ namespace FinaleSignalR_Client
                     {
                         if (parsedMessage[0] == "All" || parsedMessage[0] == id.ToString())
                         {
-                            switch (parsedMessage[1]) 
+                            switch (parsedMessage[1])
                             {
                                 case "RequestAccepted":
                                     createPlayer(id.ToString());
@@ -119,7 +162,7 @@ namespace FinaleSignalR_Client
                                     break;
                             }
                         }
-                        
+
                     }
                     var newMessage = $"{user}: {message}";
                     messages.Items.Add(newMessage);
@@ -171,9 +214,9 @@ namespace FinaleSignalR_Client
         {
             try
             {
-                await connection.InvokeAsync("SendMessage", id.ToString(), "Chat|"+messageInput.Text);
+                await connection.InvokeAsync("SendMessage", id.ToString(), "Chat|" + messageInput.Text);
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 messages.Items.Add(ex.Message);
             }
@@ -186,22 +229,22 @@ namespace FinaleSignalR_Client
 
         private void KeyIsDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Left)
+            if (e.KeyCode == Keys.Left || e.KeyCode == Keys.A)
             {
                 LeftTimer.Start();
             }
 
-            if (e.KeyCode == Keys.Right)
+            if (e.KeyCode == Keys.Right || e.KeyCode == Keys.D)
             {
                 RightTimer.Start();
             }
 
-            if (e.KeyCode == Keys.Up)
+            if (e.KeyCode == Keys.Up || e.KeyCode == Keys.W)
             {
                 UpTimer.Start();
             }
 
-            if (e.KeyCode == Keys.Down)
+            if (e.KeyCode == Keys.Down || e.KeyCode == Keys.S)
             {
                 DownTimer.Start();
             }
@@ -209,27 +252,31 @@ namespace FinaleSignalR_Client
 
         private void KeyIsUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Left)
+            if (e.KeyCode == Keys.Left || e.KeyCode == Keys.A)
             {
                 LeftTimer.Stop();
             }
-            if (e.KeyCode == Keys.Right)
+
+            if (e.KeyCode == Keys.Right || e.KeyCode == Keys.D)
             {
                 RightTimer.Stop();
             }
-            if (e.KeyCode == Keys.Up)
+
+            if (e.KeyCode == Keys.Up || e.KeyCode == Keys.W)
             {
                 UpTimer.Stop();
             }
-            if (e.KeyCode == Keys.Down)
+
+            if (e.KeyCode == Keys.Down || e.KeyCode == Keys.S)
             {
                 DownTimer.Stop();
             }
         }
-        
+
+
         private void DownTimer_Tick(object sender, EventArgs e)
         {
-            
+
             if (playerBox.Top < ClientSize.Height - playerBox.Height - 10)
             {
                 playerBox.Top += playerspeed;
@@ -270,6 +317,84 @@ namespace FinaleSignalR_Client
             catch (Exception ex)
             {
                 messages.Items.Add(ex.Message);
+            }
+        }
+
+        List<Bullet> bullets = new List<Bullet>();
+
+        private async void Form1_MouseClick(object sender, MouseEventArgs e)
+        {
+            Vector2 bulletDirection = Vector2.Normalize(new Vector2(e.X - playerBox.Left, e.Y - playerBox.Top));
+            var bullet = new Bullet(playerBox.Location, bulletDirection);
+            bullets.Add(bullet);
+            this.Controls.Add(bullet.BulletPictureBox);
+
+            try
+            {
+                await connection.InvokeAsync("SendMessage", id.ToString(), $"BULLET|{e.X}|{e.Y}|{bulletDirection.X}|{bulletDirection.Y}");
+            }
+            catch (Exception ex)
+            {
+                messages.Items.Add($"Error sending bullet data: {ex.Message}");
+            }
+        }
+
+        private void Form1_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                isShooting = true;
+            }
+        }
+
+        private void Form1_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                isShooting = false;
+            }
+        }
+
+        private void BulletMovementTimer_Tick(object sender, EventArgs e)
+        {
+            // The shooting logic
+            if (isShooting && (DateTime.Now - lastBulletFiredTime) > bulletCooldown)
+            {
+                Point targetPoint = this.PointToClient(Cursor.Position);
+
+                Vector2 start = new Vector2(playerBox.Location.X, playerBox.Location.Y);
+                Vector2 target = new Vector2(targetPoint.X, targetPoint.Y);
+
+                Vector2 direction = Vector2.Normalize(target - start);
+
+                Bullet bullet = new Bullet(playerBox.Location, direction);
+                bullets.Add(bullet);
+                this.Controls.Add(bullet.BulletPictureBox);
+
+                lastBulletFiredTime = DateTime.Now;
+            }
+
+            // Bullet movement logic
+            List<Bullet> bulletsToRemove = new List<Bullet>();
+            foreach (Bullet bullet in bullets)
+            {
+                bullet.Move();  // Assuming you have a Move method in the Bullet class
+
+                // Check if bullet is out of form bounds
+                if (bullet.BulletPictureBox.Left < 0 ||
+                    bullet.BulletPictureBox.Right > this.Width ||
+                    bullet.BulletPictureBox.Top < 0 ||
+                    bullet.BulletPictureBox.Bottom > this.Height)
+                {
+                    bulletsToRemove.Add(bullet);
+                    this.Controls.Remove(bullet.BulletPictureBox);
+                }
+            }
+
+            // Remove out-of-bounds bullets from the list
+            foreach (Bullet bullet in bulletsToRemove)
+            {
+                bullets.Remove(bullet);
             }
         }
     }
