@@ -355,11 +355,6 @@ namespace FinaleSignalR_Client
                 Vector2 target = new Vector2(targetPoint.X, targetPoint.Y);
 
                 Vector2 direction = Vector2.Normalize(target - start);
-
-                Bullet bullet = new Bullet(playerBox.Location, direction);
-                bullets.Add(bullet);
-                this.Controls.Add(bullet.BulletPictureBox);
-
                 try
                 {
                     await connection.InvokeAsync("SendMessage", id.ToString(), $"BULLET|{playerBox.Location.X}|{playerBox.Location.Y}|{direction.X}|{direction.Y}");
