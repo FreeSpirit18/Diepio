@@ -108,7 +108,6 @@ namespace FinaleSignalR_Client
             };
 
 
-            this.MouseClick += Form1_MouseClick;
             this.MouseDown += Form1_MouseDown;
             this.MouseUp += Form1_MouseUp;
 
@@ -159,6 +158,13 @@ namespace FinaleSignalR_Client
                                     break;
                                 case "Coords":
                                     moveEnemy(parsedMessage[2], int.Parse(parsedMessage[3]), int.Parse(parsedMessage[4]));
+                                    break;
+                                case "BULLET":
+                                    Vector2 bulletDirection = new Vector2(float.Parse(parsedMessage[4]), float.Parse(parsedMessage[5]));
+                                    Point startPoint = new Point(int.Parse(parsedMessage[2]), int.Parse(parsedMessage[3]));
+                                    var bullet = new Bullet(startPoint, bulletDirection);
+                                    bullets.Add(bullet);
+                                    this.Controls.Add(bullet.BulletPictureBox);
                                     break;
                             }
                         }
@@ -322,23 +328,6 @@ namespace FinaleSignalR_Client
 
         List<Bullet> bullets = new List<Bullet>();
 
-        private async void Form1_MouseClick(object sender, MouseEventArgs e)
-        {
-            Vector2 bulletDirection = Vector2.Normalize(new Vector2(e.X - playerBox.Left, e.Y - playerBox.Top));
-            var bullet = new Bullet(playerBox.Location, bulletDirection);
-            bullets.Add(bullet);
-            this.Controls.Add(bullet.BulletPictureBox);
-
-            try
-            {
-                await connection.InvokeAsync("SendMessage", id.ToString(), $"BULLET|{e.X}|{e.Y}|{bulletDirection.X}|{bulletDirection.Y}");
-            }
-            catch (Exception ex)
-            {
-                messages.Items.Add($"Error sending bullet data: {ex.Message}");
-            }
-        }
-
         private void Form1_MouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
@@ -355,7 +344,7 @@ namespace FinaleSignalR_Client
             }
         }
 
-        private void BulletMovementTimer_Tick(object sender, EventArgs e)
+        private async void BulletMovementTimer_Tick(object sender, EventArgs e)
         {
             // The shooting logic
             if (isShooting && (DateTime.Now - lastBulletFiredTime) > bulletCooldown)
@@ -370,6 +359,15 @@ namespace FinaleSignalR_Client
                 Bullet bullet = new Bullet(playerBox.Location, direction);
                 bullets.Add(bullet);
                 this.Controls.Add(bullet.BulletPictureBox);
+
+                try
+                {
+                    await connection.InvokeAsync("SendMessage", id.ToString(), $"BULLET|{playerBox.Location.X}|{playerBox.Location.Y}|{direction.X}|{direction.Y}");
+                }
+                catch (Exception ex)
+                {
+                    messages.Items.Add($"Error sending bullet data: {ex.Message}");
+                }
 
                 lastBulletFiredTime = DateTime.Now;
             }
