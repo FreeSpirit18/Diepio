@@ -38,7 +38,28 @@ namespace FinaleSignalR_Client
         }
     }
 
+    public class Pellet
+    {
+        public PictureBox PelletPictureBox { get; set; }
+        public int HP { get; set; } = 1;
+        public int EXP { get; set; } = 10;
 
+        public Pellet(Point startPosition)
+        {
+            PelletPictureBox = new PictureBox
+            {
+                Size = new Size(10, 10),
+                BackColor = Color.Green, // Example color
+                Location = startPosition,
+            };
+        }
+
+        // Add a method to check if the pellet is destroyed
+        public bool IsDestroyed()
+        {
+            return HP <= 0;
+        }
+    }
 
     public partial class Form1 : Form
     {
@@ -116,6 +137,9 @@ namespace FinaleSignalR_Client
             bulletMovementTimer.Interval = 1;
             bulletMovementTimer.Tick += BulletMovementTimer_Tick;
             bulletMovementTimer.Start();
+
+            GeneratePellets();
+
         }
 
         private void createPlayer(string id)
@@ -367,13 +391,13 @@ namespace FinaleSignalR_Client
                 lastBulletFiredTime = DateTime.Now;
             }
 
-            // Bullet movement logic
+
             List<Bullet> bulletsToRemove = new List<Bullet>();
+            List<Pellet> pelletsToRemove = new List<Pellet>();
             foreach (Bullet bullet in bullets)
             {
-                bullet.Move();  // Assuming you have a Move method in the Bullet class
+                bullet.Move();  
 
-                // Check if bullet is out of form bounds
                 if (bullet.BulletPictureBox.Left < 0 ||
                     bullet.BulletPictureBox.Right > this.Width ||
                     bullet.BulletPictureBox.Top < 0 ||
@@ -382,12 +406,58 @@ namespace FinaleSignalR_Client
                     bulletsToRemove.Add(bullet);
                     this.Controls.Remove(bullet.BulletPictureBox);
                 }
+
+                foreach (Pellet pellet in pellets)
+                {
+                    if (bullet.BulletPictureBox.Bounds.IntersectsWith(pellet.PelletPictureBox.Bounds))
+                    {
+                        // Decrease pellet HP
+                        pellet.HP--;
+
+                        // Remove the bullet when it hits a pellet
+                        bulletsToRemove.Add(bullet);
+                        this.Controls.Remove(bullet.BulletPictureBox);
+
+                        // Check if the pellet is destroyed
+                        if (pellet.IsDestroyed())
+                        {
+                            // Remove the pellet
+                            pelletsToRemove.Add(pellet);
+                            this.Controls.Remove(pellet.PelletPictureBox);
+
+                            // to do: increase tank's EXP when a pellet is destroyed
+                        }
+                    }
+                }
+
             }
+
+
 
             // Remove out-of-bounds bullets from the list
             foreach (Bullet bullet in bulletsToRemove)
             {
                 bullets.Remove(bullet);
+            }
+            // Remove out-of-bounds bullets from the list
+            foreach (Pellet pellet in pelletsToRemove)
+            {
+                pellets.Remove(pellet);
+            }
+        }
+
+        List<Pellet> pellets = new List<Pellet>();
+
+        private void GeneratePellets()
+        {
+            Random rnd = new Random();
+            for (int i = 0; i < 50; i++) // Change 50 to the desired number of pellets
+            {
+                int x = rnd.Next(ClientSize.Width - 10); // Adjust the boundaries as needed
+                int y = rnd.Next(ClientSize.Height - 10); // Adjust the boundaries as needed
+                var pellet = new Pellet(new Point(x, y));
+                pellets.Add(pellet);
+                this.Controls.Add(pellet.PelletPictureBox);
             }
         }
     }
