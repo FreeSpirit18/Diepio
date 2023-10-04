@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using FinaleSignalR_Client.Controls;
 using Microsoft.AspNetCore.SignalR.Client;
 
 
@@ -19,6 +20,12 @@ namespace FinaleSignalR_Client
         int playerCount = 0;
         int id;
         PictureBox playerBox;
+        MapControl mapControl;
+
+        int mapMinX = 0;
+        int mapMinY = 0;
+        int mapMaxX = 0;
+        int mapMaxY = 0;
 
         public Form1()
         {
@@ -27,7 +34,8 @@ namespace FinaleSignalR_Client
 
             playerspeed = 5;
             this.KeyPreview = true;
-
+            this.mapControl = new MapControl();
+            this.Controls.Add(this.mapControl);
             
             
             //((System.ComponentModel.ISupportInitialize)(Player)).EndInit();
@@ -85,8 +93,17 @@ namespace FinaleSignalR_Client
             Player.Size = new System.Drawing.Size(64, 64);
             Player.TabIndex = 0;
             Player.TabStop = false;
+
+            this.mapMaxX = mapControl.Width - Player.Width;
+            this.mapMaxY = mapControl.Height - Player.Height;
+
+            //adding player to map
+            this.mapControl.Controls.Add(Player);
+
             playerBoxes[playerCount] = Player;
-            this.Controls.Add(playerBoxes[playerCount]);
+            
+            
+            //this.Controls.Add(playerBoxes[playerCount]);
             playerCount++;
         }
 
@@ -229,8 +246,8 @@ namespace FinaleSignalR_Client
         
         private void DownTimer_Tick(object sender, EventArgs e)
         {
-            
-            if (playerBox.Top < ClientSize.Height - playerBox.Height - 10)
+
+            if (playerBox.Top + playerspeed < mapMaxY)
             {
                 playerBox.Top += playerspeed;
             }
@@ -238,7 +255,7 @@ namespace FinaleSignalR_Client
 
         private void LeftTimer_Tick_1(object sender, EventArgs e)
         {
-            if (playerBox.Left > 10)
+            if (playerBox.Left - playerspeed > mapMinX)
             {
                 playerBox.Left -= playerspeed;
             }
@@ -246,7 +263,7 @@ namespace FinaleSignalR_Client
 
         private void UpTimer_Tick_1(object sender, EventArgs e)
         {
-            if (playerBox.Top > 10)
+            if (playerBox.Top - playerspeed > mapMinY)
             {
                 playerBox.Top -= playerspeed;
             }
@@ -254,7 +271,7 @@ namespace FinaleSignalR_Client
 
         private void RightTimer_Tick_1(object sender, EventArgs e)
         {
-            if (playerBox.Left < ClientSize.Width - playerBox.Height - 10)
+            if (playerBox.Left + playerspeed < mapMaxX)
             {
                 playerBox.Left += playerspeed;
             }
