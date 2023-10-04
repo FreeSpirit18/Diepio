@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading.Tasks;
@@ -27,6 +28,8 @@ namespace FinaleSignalR_Client
         int mapMaxX = 0;
         int mapMaxY = 0;
 
+        //List<Rectangle> obstacles;
+
         public Form1()
         {
             InitializeComponent();
@@ -36,8 +39,10 @@ namespace FinaleSignalR_Client
             this.KeyPreview = true;
             this.mapControl = new MapControl();
             this.Controls.Add(this.mapControl);
+            //this.obstacles = new List<Rectangle>();
+            //obstacles.Add(new Rectangle(100, 100, 50, 50));
             
-            
+
             //((System.ComponentModel.ISupportInitialize)(Player)).EndInit();
 
             //Conects to a given url
@@ -249,7 +254,11 @@ namespace FinaleSignalR_Client
 
             if (playerBox.Top + playerspeed < mapMaxY)
             {
-                playerBox.Top += playerspeed;
+                int newPlayerTop = playerBox.Top + playerspeed;
+
+                // Check if the new position collides with any obstacle
+                if (!CollidesWithObstacle(playerBox.Left, newPlayerTop, playerBox.Width, playerBox.Height))
+                    playerBox.Top += playerspeed;
             }
         }
 
@@ -257,7 +266,12 @@ namespace FinaleSignalR_Client
         {
             if (playerBox.Left - playerspeed > mapMinX)
             {
-                playerBox.Left -= playerspeed;
+                int newPlayerLeft = playerBox.Left - playerspeed;
+
+                // Check if the new position collides with any obstacle
+                if (!CollidesWithObstacle(newPlayerLeft, playerBox.Top, playerBox.Width, playerBox.Height))
+
+                    playerBox.Left -= playerspeed;
             }
         }
 
@@ -265,7 +279,11 @@ namespace FinaleSignalR_Client
         {
             if (playerBox.Top - playerspeed > mapMinY)
             {
-                playerBox.Top -= playerspeed;
+                int newPlayerTop = playerBox.Top - playerspeed;
+
+                // Check if the new position collides with any obstacle
+                if (!CollidesWithObstacle(playerBox.Left, newPlayerTop, playerBox.Width, playerBox.Height))
+                    playerBox.Top -= playerspeed;
             }
         }
 
@@ -273,8 +291,26 @@ namespace FinaleSignalR_Client
         {
             if (playerBox.Left + playerspeed < mapMaxX)
             {
-                playerBox.Left += playerspeed;
+                int newPlayerLeft = playerBox.Left + playerspeed;
+                if (!CollidesWithObstacle(newPlayerLeft, playerBox.Top, playerBox.Width, playerBox.Height))
+                    playerBox.Left += playerspeed;
             }
+        }
+
+        // Function to check collision with obstacles
+        private bool CollidesWithObstacle(int x, int y, int width, int height)
+        {
+            Rectangle playerRect = new Rectangle(x, y, width, height);
+
+            foreach (Rectangle obstacle in this.mapControl.obstacles)
+            {
+                if (playerRect.IntersectsWith(obstacle))
+                {
+                    return true; // Collision detected
+                }
+            }
+
+            return false; // No collision detected
         }
 
         private async void ServerTimer_Tick(object sender, EventArgs e)
