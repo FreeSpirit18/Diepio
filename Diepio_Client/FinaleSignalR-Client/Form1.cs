@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using FinaleSignalR_Client.Controls;
 using Microsoft.AspNetCore.SignalR.Client;
 
 
@@ -19,6 +21,14 @@ namespace FinaleSignalR_Client
         int playerCount = 0;
         int id;
         PictureBox playerBox;
+        MapControl mapControl;
+
+        int mapMinX = 0;
+        int mapMinY = 0;
+        int mapMaxX = 0;
+        int mapMaxY = 0;
+
+        //List<Rectangle> obstacles;
 
         public Form1()
         {
@@ -27,9 +37,12 @@ namespace FinaleSignalR_Client
 
             playerspeed = 5;
             this.KeyPreview = true;
+            this.mapControl = new MapControl();
+            this.Controls.Add(this.mapControl);
+            //this.obstacles = new List<Rectangle>();
+            //obstacles.Add(new Rectangle(100, 100, 50, 50));
+            
 
-            
-            
             //((System.ComponentModel.ISupportInitialize)(Player)).EndInit();
 
             //Conects to a given url
@@ -85,8 +98,17 @@ namespace FinaleSignalR_Client
             Player.Size = new System.Drawing.Size(64, 64);
             Player.TabIndex = 0;
             Player.TabStop = false;
+
+            this.mapMaxX = mapControl.Width - Player.Width;
+            this.mapMaxY = mapControl.Height - Player.Height;
+
+            //adding player to map
+            this.mapControl.Controls.Add(Player);
+
             playerBoxes[playerCount] = Player;
-            this.Controls.Add(playerBoxes[playerCount]);
+            
+            
+            //this.Controls.Add(playerBoxes[playerCount]);
             playerCount++;
         }
 
@@ -229,35 +251,66 @@ namespace FinaleSignalR_Client
         
         private void DownTimer_Tick(object sender, EventArgs e)
         {
-            
-            if (playerBox.Top < ClientSize.Height - playerBox.Height - 10)
+
+            if (playerBox.Top + playerspeed < mapMaxY)
             {
-                playerBox.Top += playerspeed;
+                int newPlayerTop = playerBox.Top + playerspeed;
+
+                // Check if the new position collides with any obstacle
+                if (!CollidesWithObstacle(playerBox.Left, newPlayerTop, playerBox.Width, playerBox.Height))
+                    playerBox.Top += playerspeed;
             }
         }
 
         private void LeftTimer_Tick_1(object sender, EventArgs e)
         {
-            if (playerBox.Left > 10)
+            if (playerBox.Left - playerspeed > mapMinX)
             {
-                playerBox.Left -= playerspeed;
+                int newPlayerLeft = playerBox.Left - playerspeed;
+
+                // Check if the new position collides with any obstacle
+                if (!CollidesWithObstacle(newPlayerLeft, playerBox.Top, playerBox.Width, playerBox.Height))
+
+                    playerBox.Left -= playerspeed;
             }
         }
 
         private void UpTimer_Tick_1(object sender, EventArgs e)
         {
-            if (playerBox.Top > 10)
+            if (playerBox.Top - playerspeed > mapMinY)
             {
-                playerBox.Top -= playerspeed;
+                int newPlayerTop = playerBox.Top - playerspeed;
+
+                // Check if the new position collides with any obstacle
+                if (!CollidesWithObstacle(playerBox.Left, newPlayerTop, playerBox.Width, playerBox.Height))
+                    playerBox.Top -= playerspeed;
             }
         }
 
         private void RightTimer_Tick_1(object sender, EventArgs e)
         {
-            if (playerBox.Left < ClientSize.Width - playerBox.Height - 10)
+            if (playerBox.Left + playerspeed < mapMaxX)
             {
-                playerBox.Left += playerspeed;
+                int newPlayerLeft = playerBox.Left + playerspeed;
+                if (!CollidesWithObstacle(newPlayerLeft, playerBox.Top, playerBox.Width, playerBox.Height))
+                    playerBox.Left += playerspeed;
             }
+        }
+
+        // Function to check collision with obstacles
+        private bool CollidesWithObstacle(int x, int y, int width, int height)
+        {
+            Rectangle playerRect = new Rectangle(x, y, width, height);
+
+            foreach (Rectangle obstacle in this.mapControl.obstacles)
+            {
+                if (playerRect.IntersectsWith(obstacle))
+                {
+                    return true; // Collision detected
+                }
+            }
+
+            return false; // No collision detected
         }
 
         private async void ServerTimer_Tick(object sender, EventArgs e)
